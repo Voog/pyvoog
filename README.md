@@ -11,6 +11,27 @@ capabilities:
 * Environment-based configuration
 * Logging
 
+## Building
+
+Initialize and activate a Python virtual env.
+
+```
+$ virtualenv3 venv
+$ . venv/bin/activate
+```
+
+Install `build`.
+
+```
+$ pip install build
+```
+
+Build the project.
+
+```
+$ python -m build
+```
+
 ## License
 
 Copyright (C) 2024 Edicy OÜ
