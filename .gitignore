@@ -1,0 +1,8 @@
+*.db
+*.swp
+.ackrc
+.commit
+/dist
+/test.py
+/venv
+__pycache__
