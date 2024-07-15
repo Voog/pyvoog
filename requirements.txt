@@ -1,8 +1,0 @@
-blinker==1.6.2
-deepmerge==0.3.0
-flask==2.0.3
-jwt==1.2.0
-marshmallow==3.12.2
-sqlalchemy==1.4.48
-stringcase==1.2.0
-werkzeug==2.3.4
