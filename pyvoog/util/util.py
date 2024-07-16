@@ -6,14 +6,14 @@ from collections.abc import Mapping, MutableMapping
 from jwt import JWT, jwk_from_dict
 
 class AllowException:
-    def __init__(self, exc=None):
-        self.exc = exc
+    def __init__(self, *excs):
+        self.excs = excs
 
     def __enter__(self):
         return None
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if (self.exc and exc_type and issubclass(exc_type, self.exc)):
+        if (exc_type and any(issubclass(exc_type, our_exc_type) for our_exc_type in self.excs)):
             return True
         return False
 
