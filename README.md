@@ -11,7 +11,10 @@ capabilities:
 * Environment-based configuration
 * Logging
 
-## Building
+## Development
+
+Pyvoog uses Poetry for package management. Install Poetry globally as per the
+[official instructions](https://python-poetry.org/docs/#installation).
 
 Initialize and activate a Python virtual env.
 
@@ -20,16 +23,16 @@ $ virtualenv3 venv
 $ . venv/bin/activate
 ```
 
-Install `build`.
+To install the project's dependencies:
 
 ```
-$ pip install build
+$ poetry install
 ```
 
-Build the project.
+To build the project:
 
 ```
-$ python -m build
+$ poetry build
 ```
 
 ## License
