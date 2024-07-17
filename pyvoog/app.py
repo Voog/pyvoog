@@ -20,7 +20,7 @@ class Application(fl.Flask):
         with self.app_context():
             app = fl.current_app
 
-            log_requests(app, self._make_request_log_string)
+            log_requests(app)
 
             app._register_error_handlers()
 
@@ -40,9 +40,3 @@ class Application(fl.Flask):
             if code >= 400:
                 with AllowException(KeyError, ValueError):
                     self.register_error_handler(code, get_handler(code))
-
-    def _make_request_log_string(self, request, response):
-        return (
-            f"Completed {request.method} {request.path} for {request.remote_addr}"
-            f"with {response.status}"
-        )

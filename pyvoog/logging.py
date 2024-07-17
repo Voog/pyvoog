@@ -53,6 +53,9 @@ def log_requests(app, make_log_string=None):
     handler logging all requests.
     """
 
+    if make_log_string is None:
+        make_log_string = make_request_log_string
+
     def log_request(response):
         request = fl.request
 
@@ -69,3 +72,9 @@ def log_requests(app, make_log_string=None):
         return response
 
     app.after_request(log_request)
+
+def make_request_log_string(self, request, response):
+    return (
+        f"Completed {request.method} {request.path} for {request.remote_addr}"
+        f"with {response.status}"
+    )
