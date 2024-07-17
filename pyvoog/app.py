@@ -19,8 +19,10 @@ class Application(fl.Flask):
             app = fl.current_app
 
             log_requests(app)
-
             app._register_error_handlers()
+
+            if getattr(self, "__app_post_init__", None):
+                self.__app_post_init__()
 
     def _register_error_handlers(self):
 
