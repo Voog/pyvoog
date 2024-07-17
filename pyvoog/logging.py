@@ -73,8 +73,8 @@ def log_requests(app, make_log_string=None):
 
     app.after_request(log_request)
 
-def make_request_log_string(self, request, response):
+def make_request_log_string(request, response):
     return (
-        f"Completed {request.method} {request.path} for {request.remote_addr}"
+        f"Completed {request.method} {request.path} for {request.remote_addr} "
         f"with {response.status}"
     )
