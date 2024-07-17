@@ -19,6 +19,7 @@ SQLAlchemy = "^2.0.31"
 stringcase = "^1.2.0"
 attrs = "^23.2.0"
 gunicorn = "^22.0.0"
+requests = "^2.32.3"
 
 [tool.poetry.group.dev.dependencies]
 autoflake = "^2.3.1"
