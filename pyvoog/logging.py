@@ -15,6 +15,30 @@ class PrefixedLogRecord(logging.LogRecord):
         super().__init__(name, *args, **kwargs)
         self.prefix = "" if name == "root" else "[{}] ".format(name)
 
+def setup_logging(level_str, extra_level_str):
+
+    """ Set up logging with timestamped and prefixed log records, allowing
+    log level differentiation for SQLAlchemy loggers.
+    """
+
+    level = getattr(logging, level_str.upper())
+
+    extra_loggers = (
+        "sqlalchemy.pool",
+        "sqlalchemy.dialects",
+        "sqlalchemy.orm",
+        "sqlalchemy.engine",
+    )
+
+    logging.setLogRecordFactory(make_log_record)
+    logging.basicConfig(format="%(asctime)s %(levelname)7s: %(prefix)s%(message)s", level=level)
+
+    if extra_level_str:
+        extra_level = getattr(logging, extra_level_str.upper())
+
+        for logger in extra_loggers:
+            logging.getLogger(logger).setLevel(extra_level)
+
 def make_log_record(name, level, fn, lno, msg, args, exc_info, func=None, sinfo=None, **kwargs):
 
     """ LogRecord factory. Note that path is currently passed as None.
