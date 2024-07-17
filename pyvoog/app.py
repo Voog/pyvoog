@@ -12,8 +12,8 @@ from pyvoog.logging import log_requests
 from pyvoog.util import AllowException
 
 class Application(fl.Flask):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, name=None):
+        super().__init__(name or self.__class__.__name__)
 
         with self.app_context():
             app = fl.current_app
