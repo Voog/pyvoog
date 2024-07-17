@@ -3,12 +3,17 @@ import logging
 import re
 
 import flask as fl
+
+from attrs import define, field
 from stringcase import pascalcase, snakecase
 
 from .resource import Resource
 from .endpoint import Endpoint
 
+@define
 class Router:
+    controller_ns: str
+
     DEFAULT_ENDPOINTS_TEMPLATE = [
         dict(path="{}s", methods=["GET"], action="index"),
         dict(path="{}s", methods=["POST"], action="create"),
@@ -25,12 +30,13 @@ class Router:
         endpoints are configured, a default set of RESTful endpoints for the
         resource are set up.
 
-        The controller module to import from `pyvoog.controllers` is inferred from
-        the path prefix and resource name. The module is expected to contain a
-        class with a name constructed by titlecasing the resource name and
-        appending "Controller" to it, which is instantiated with the app object.
-        The controller must contain a method for every action specified in
-        Endpoints for serving the specified request.
+        The controller module to import from the namespace specified by
+        `controller_ns` is inferred from the path prefix and resource name. The
+        module is expected to contain a class with a name constructed by
+        titlecasing the resource name and appending "Controller" to it, which is
+        instantiated with the app object. The controller must contain a method
+        for every action specified in Endpoints for serving the specified
+        request.
         """
 
         for path_prefix, resources in config.items():
@@ -44,7 +50,7 @@ class Router:
             )
 
         path_prefix = re.sub(r"/+", "/", re.sub(r"^/+|/+$", "", path_prefix))
-        module_name = f"pyvoog.controllers.{path_prefix.replace('/', '.')}.{resource.name}"
+        module_name = f"{self.controller_ns}.{path_prefix.replace('/', '.')}.{resource.name}"
         module = importlib.import_module(module_name)
         controller_cls = getattr(module, f"{pascalcase(resource.name)}Controller")
         controller = controller_cls()
