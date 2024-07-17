@@ -11,8 +11,7 @@ from attrs import define, field
 
 @define
 class Args:
-    defaults: dict
-    parser_args: dict
+    parser_args: dict = {}
     _parser: argparse.ArgumentParser = field(init=False, default=None)
     _parsed_args: argparse.Namespace = field(init=False, default=None)
     _our_argv: list = field(init=False)
@@ -32,30 +31,29 @@ class Args:
 
         return self._parser
 
-    def add_arguments(self):
+    def add_common_argumets(self, **defaults):
 
         """ Add default arguments to the parser. Override in a subclass to add
         application-specific arguments.
         """
 
         parser = self.parser
-        defaults = self.defaults
 
         parser.add_argument(
             "-b", "--bind", default="127.0.0.1", type=str,
             help="The interface to bind to, 127.0.0.1 by default"
         )
         parser.add_argument(
-            "-p", "--port", default=defaults["port"], type=int,
-            help="The port to listen on, {} by default".format(defaults["port"])
+            "-p", "--port", default=defaults.get("port"), type=int,
+            help="The port to listen on, {} by default".format(defaults.get("port"))
         )
         parser.add_argument(
-            "-d", "--database", default=defaults["database"], type=str,
-            help="The database URL, {} by default".format(defaults["database"])
+            "-d", "--database", default=defaults.get("database"), type=str,
+            help="The database URL, {} by default".format(defaults.get("database"))
         )
         parser.add_argument(
-            "-l", "--loglevel", default=defaults["loglevel"], type=str,
-            help="Log level, {} by default".format(defaults["loglevel"])
+            "-l", "--loglevel", default=defaults.get("loglevel"), type=str,
+            help="Log level, {} by default".format(defaults.get("loglevel"))
         )
         parser.add_argument(
             "--extra-loglevel", type=str, help="Log level for extra SQLAlchemy loggers"
@@ -67,7 +65,6 @@ class Args:
     @property
     def parsed_args(self):
         if not self._parsed_args:
-            self.add_arguments()
             self._parsed_args = self.parser.parse_args(self._our_argv)
 
         return self._parsed_args
