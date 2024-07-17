@@ -31,6 +31,29 @@ class Args:
 
         return self._parser
 
+    @property
+    def parsed_args(self):
+        if not self._parsed_args:
+            self._parsed_args = self.parser.parse_args(self._our_argv)
+
+        return self._parsed_args
+
+    @property
+    def gunicorn_argv(self):
+
+        """ Return the portion of argv separated by `--`. Translate our
+        arguments to gunicorn equivalents and append to the former. Note that
+        this will parse arguments, if this has not happened alredy.
+        """
+
+        args = self.parsed_args
+        gunicorn_argv = self._rest_of_argv.copy()
+
+        if args.port:
+            gunicorn_argv += ["--bind", f"{args.bind}:{args.port}"]
+
+        return gunicorn_argv
+
     def add_common_argumets(self, **defaults):
 
         """ Add default arguments to the parser. Override in a subclass to add
@@ -61,29 +84,6 @@ class Args:
         parser.add_argument(
             "--hide-sql-params", action="store_true", help="Hide SQL parameters from log entries"
         )
-
-    @property
-    def parsed_args(self):
-        if not self._parsed_args:
-            self._parsed_args = self.parser.parse_args(self._our_argv)
-
-        return self._parsed_args
-
-    @property
-    def gunicorn_argv(self):
-
-        """ Return the portion of argv separated by `--`. Translate our
-        arguments to gunicorn equivalents and append to the former. Note that
-        this will parse arguments, if this has not happened alredy.
-        """
-
-        args = self.parsed_args
-        gunicorn_argv = self._rest_of_argv.copy()
-
-        if args.port:
-            gunicorn_argv += ["--bind", f"{args.bind}:{args.port}"]
-
-        return gunicorn_argv
 
     @staticmethod
     def _split_command_line():
