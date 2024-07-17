@@ -137,7 +137,7 @@ class _ModelEncoder(json.JSONEncoder):
 def scoped_endpoint(fn):
 
     """ A decorator providing the `query` parameter: an SQLAlchemy statement
-    with the store scope applied. Also applies `api_endpoint`.
+    with the default scope applied. Also applies `api_endpoint`.
     """
 
     @functools.wraps(fn)
@@ -152,7 +152,7 @@ def scoped_endpoint(fn):
 def single_object_endpoint(fn):
 
     """ A decorator enhancing `scoped_endpoint` and providing the `obj`
-    parameter: an object of `self.model`, looked up by the active store
+    parameter: an object of `self.model`, looked up by the effective default
     scope and incoming ID.
     """
 
