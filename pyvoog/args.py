@@ -7,12 +7,18 @@ Gunicorn verbatim, separated from application args by `--`.
 import argparse
 import sys
 
+from attrs import define, field
+
+@define
 class Args:
-    def __init__(self, defaults={}, parser_args={}):
-        self._defaults = defaults
-        self._parser_args = parser_args
-        self._parser = None
-        self._parsed_args = None
+    defaults: dict
+    parser_args: dict
+    _parser: argparse.ArgumentParser = field(init=False, default=None)
+    _parsed_args: argparse.Namespace = field(init=False, default=None)
+    _our_argv: list = field(init=False)
+    _rest_of_argv: list = field(init=False)
+
+    def __attrs_post_init__(self):
         (self._our_argv, self._rest_of_argv) = self._split_command_line()
 
     @property
@@ -22,7 +28,7 @@ class Args:
                 epilog="Any arguments specified after `--` are passed on to the gunicorn server."
             )
 
-            self._parser = argparse.ArgumentParser(**(defaults | self._parser_args))
+            self._parser = argparse.ArgumentParser(**(defaults | self.parser_args))
 
         return self._parser
 
@@ -33,7 +39,7 @@ class Args:
         """
 
         parser = self.parser
-        defaults = self._defaults
+        defaults = self.defaults
 
         parser.add_argument(
             "-b", "--bind", default="127.0.0.1", type=str,
