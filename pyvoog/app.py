@@ -4,8 +4,6 @@
 errors with a JSON payload.
 """
 
-from functools import reduce
-
 import flask as fl
 import werkzeug.http
 
