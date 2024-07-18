@@ -78,11 +78,14 @@ class ApiBaseController(Controller):
     @mutating_endpoint
     def _create_object(self, payload):
         attrs = self._permit_attributes(self.schema, payload)
-        obj = self.model() # TODO: implement mutation hooks
+        obj = self.model()
         session = get_session()
 
         for k, v in attrs.items():
             setattr(obj, k, v)
+
+        if getattr(self, "_run_after_model_population", None):
+            self._run_after_model_population(obj, payload, action='create')
 
         session.add(obj)
 
@@ -96,6 +99,9 @@ class ApiBaseController(Controller):
 
         for k, v in attrs.items():
             setattr(obj, k, v)
+
+        if getattr(self, "_run_after_model_population", None):
+            self._run_after_model_population(obj, payload, action='update')
 
         session.add(obj)
 
