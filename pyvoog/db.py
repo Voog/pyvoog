@@ -1,5 +1,6 @@
 import logging
 
+from collections import namedtuple
 from functools import partial
 from itertools import chain, filterfalse
 
@@ -9,6 +10,8 @@ from sqlalchemy import create_engine, engine, event
 from sqlalchemy.orm import Session
 
 from pyvoog.exceptions import NotInitializedError
+
+_PerRequestSession = namedtuple('_PerRequestSession', ['value'])
 
 _engine = None
 
@@ -38,8 +41,9 @@ def get_session(key="session", cls=ValidatingSession):
 
     """ Return a per-request SQLAlchemy Session, creating one if needed.
     There may be several active sessions, differentiated by the given key.
-    Register a teardown listener to close the session. Remove any listeners
-    for the given key that are already present beforehand.
+    The teardown listener must be registered separately at app
+    initialization, as this is no longer allowed once a request is in
+    progress.
     """
 
     app = fl.current_app
@@ -50,13 +54,9 @@ def get_session(key="session", cls=ValidatingSession):
         if not isinstance(_engine, engine.Engine):
             raise NotInitializedError("Database engine has not been set up.")
 
-        app.teardown_appcontext_funcs = \
-            list(filterfalse(_get_teardown_fn_filter(key), app.teardown_appcontext_funcs))
+        setattr(fl.g, key, _PerRequestSession(cls(_engine)))
 
-        setattr(fl.g, key, cls(_engine))
-        app.teardown_appcontext(partial(_teardown_session, key))
-
-    return fl.g.get(key)
+    return fl.g.get(key).value
 
 def get_plain_session():
 
@@ -64,20 +64,12 @@ def get_plain_session():
 
     return get_session(key="plain_session", cls=Session)
 
-def _teardown_session(key, exc):
-    logging.debug(f"Tearing down per-request session '{key}'")
+def teardown_sessions(exc):
+    app = fl.current_app
+    session_keys = list(filter(lambda k: isinstance(fl.g.get(k), _PerRequestSession), fl.g))
 
-    if session := fl.g.pop(key, None):
+    for key in session_keys:
+        logging.debug(f"Tearing down per-request session '{key}'")
+
+        session = fl.g.pop(key).value
         session.close()
-
-def _get_teardown_fn_filter(key):
-
-    """ Return a predicate returning True if the given function is a session
-    teardown listener for the given key.
-    """
-
-    def is_teardown_fn(fn):
-        is_partial = hasattr(fn, "args") and hasattr(fn, "func")
-        return is_partial and fn.func.__name__ == "_teardown_session" and fn.args[0] == key
-
-    return is_teardown_fn

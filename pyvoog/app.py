@@ -7,6 +7,7 @@ errors with a JSON payload.
 import flask as fl
 import werkzeug.http
 
+from pyvoog.db import teardown_sessions
 from pyvoog.controller import get_response_tuple
 from pyvoog.logging import log_requests
 from pyvoog.util import AllowException
@@ -20,6 +21,7 @@ class Application(fl.Flask):
 
             log_requests(app)
             app._register_error_handlers()
+            app._register_teardown_funcs()
 
             if getattr(self, "__app_post_init__", None):
                 self.__app_post_init__()
@@ -40,3 +42,6 @@ class Application(fl.Flask):
             if code >= 400:
                 with AllowException(KeyError, ValueError):
                     self.register_error_handler(code, get_handler(code))
+
+    def _register_teardown_funcs(self):
+        self.teardown_appcontext(teardown_sessions)
