@@ -21,7 +21,6 @@ class Undefined:
 
     """ A class to convey a null value, distinct from None. """
 
-
 class VanillaDict(dict):
 
     """ A helper class for data structures passed into
