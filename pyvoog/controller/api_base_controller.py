@@ -1,10 +1,7 @@
 from functools import wraps
 
-from werkzeug.exceptions import MethodNotAllowed
-
 from pyvoog.controller import Controller, \
-    api_endpoint as make_api_endpoint_decorator, \
-    scoped_endpoint, single_object_endpoint, mutating_endpoint
+    api_endpoint, scoped_endpoint, single_object_endpoint, mutating_endpoint
 from pyvoog.db import get_session
 
 class ApiBaseController(Controller):
@@ -14,40 +11,17 @@ class ApiBaseController(Controller):
     On your controller class, the following class fields are supported for
     configuration:
 
+    - allowed_actions - a list of allowed actions on this controller.
     - index_order_field - The default field to use for sorting index
       endpoint responses, `id` by default.
     - jwt_secret - base64-encoded JWT secret.
-    - allowed_actions - a list of allowed actions on this controller.
+    - model - the backing model of this controller.
+    - schema - the Marshmallow schema of acceptable payloads.
     """
 
     DEFAULT_INDEX_ORDER_FIELD = "id"
 
-    def _api_endpoint(fn):
-
-        """ As we need to query `jwt_secret` from self, defer API endpoint
-        decorator construction until the first request - this is in turn wrapped
-        in our higher-order `_api_endpoint` decorator.
-
-        Also, check whether the endpoint is enabled here and fail with HTTP/405
-        otherwise.
-        """
-
-        decorated_fn = None
-
-        @wraps(fn)
-        def wrapped(self, *args, **kwargs):
-            nonlocal decorated_fn
-
-            self._raise_on_disallowed_action(fn)
-
-            if decorated_fn is None:
-                decorated_fn = make_api_endpoint_decorator(jwt_secret=self.jwt_secret)(fn)
-
-            return decorated_fn(self, *args, **kwargs)
-
-        return wrapped
-
-    @_api_endpoint
+    @api_endpoint()
     @scoped_endpoint
     def index(self, query):
         return (
@@ -55,26 +29,26 @@ class ApiBaseController(Controller):
             200,
         )
 
-    @_api_endpoint
+    @api_endpoint()
     @single_object_endpoint
     def get(self, obj):
         return obj
 
-    @_api_endpoint
+    @api_endpoint()
     def create(self, *args, **kwargs):
         session, obj = self._create_object(*args, **kwargs)
 
         session.commit()
         return obj
 
-    @_api_endpoint
+    @api_endpoint()
     def update(self, *args, **kwargs):
         session, obj = self._update_object(*args, **kwargs)
 
         session.commit()
         return obj
 
-    @_api_endpoint
+    @api_endpoint()
     @single_object_endpoint
     def delete(self, obj):
         session = get_session()
@@ -119,9 +93,3 @@ class ApiBaseController(Controller):
         session.add(obj)
 
         return (session, obj)
-
-    def _raise_on_disallowed_action(self, action):
-        allowed_actions = getattr(self, "allowed_actions", None)
-
-        if (allowed_actions is not None) and (action.__name__ not in self.allowed_actions):
-            raise MethodNotAllowed()

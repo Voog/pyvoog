@@ -11,7 +11,7 @@ import werkzeug.http
 
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, MethodNotAllowed
 
 from pyvoog.db import get_session
 from pyvoog.exceptions import AuthenticationError, ValidationError
@@ -73,18 +73,38 @@ def single_object_endpoint(fn):
 
 """ Generic API facilities """
 
-def api_endpoint(*args, **kwargs):
+def api_endpoint(*dec_args, jwt_secret=None, **dec_kwargs):
 
     """ A high-level API endpoint decorator factory combining
     `json_endpoint`, `emit_http_codes` and `authenticate`. Arguments are
     passed to the `authenticate` decorator factory.
+
+    If `jwt_secret` is not passed in, it is expected to be an attribute on
+    the controller.
+
+    In addition, HTTP/405 is raised if the `allowed_actions` itearble
+    attribute is present on the controller and does not contain the
+    action servicing the request.
     """
 
     def decorator(fn):
-        return functools.update_wrapper(
-            json_endpoint(emit_http_codes(authenticate(*args, **kwargs)(fn))),
-            fn
-        )
+        @functools.wraps(fn)
+        def wrapped(self, *args, **kwargs):
+            nonlocal dec_kwargs
+            nonlocal jwt_secret
+
+            _raise_on_disallowed_action(controller=self, action=fn)
+
+            if jwt_secret is None:
+                jwt_secret = self.jwt_secret
+
+            decorated = json_endpoint(
+                emit_http_codes(authenticate(*dec_args, jwt_secret=jwt_secret, **dec_kwargs)(fn))
+            )
+
+            return decorated(self, *args, **kwargs)
+
+        return wrapped
 
     return decorator
 
@@ -218,3 +238,9 @@ def _get_jwt_from_request():
             jwt = None
 
     return jwt
+
+def _raise_on_disallowed_action(controller, action):
+    allowed_actions = getattr(controller, "allowed_actions", None)
+
+    if (allowed_actions is not None) and (action.__name__ not in controller.allowed_actions):
+        raise MethodNotAllowed()
