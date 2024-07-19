@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 
 import flask as fl
+import jwt as pyjwt
 import werkzeug.http
 
 from sqlalchemy import select
@@ -15,7 +16,7 @@ from werkzeug.exceptions import BadRequest
 from pyvoog.db import get_session
 from pyvoog.exceptions import AuthenticationError, ValidationError
 from pyvoog.signals import jwt_decoded
-from pyvoog.util import AllowException, decode_jwt
+from pyvoog.util import AllowException
 
 class _ModelEncoder(json.JSONEncoder):
 
@@ -160,7 +161,8 @@ def authenticate(jwt_secret):
 
     """ The returned decorator raises AuthenticationError on authentication
     failure and emits the `jwt_decoded` signal with the decoded JWT payload
-    on success.
+    on success. The `exp` claim is currently required unconditionally on the
+    token and stale tokens are rejected.
     """
 
     def decorator(fn):
@@ -169,7 +171,9 @@ def authenticate(jwt_secret):
             jwt = _get_jwt_from_request()
 
             try:
-                payload = decode_jwt(jwt, jwt_secret, do_time_check=True)
+                payload = pyjwt.decode(
+                    jwt, jwt_secret, algorithms="HS256", options=dict(require=["exp"])
+                )
             except Exception as e:
                 logging.warn(f"Authentication failure for token \"{jwt}\": {e}")
                 raise AuthenticationError("Not Authenticated")
