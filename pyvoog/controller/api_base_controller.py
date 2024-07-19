@@ -64,7 +64,7 @@ class ApiBaseController(Controller):
 
     @mutating_endpoint
     def _create_object(self, payload):
-        attrs = self._permit_attributes(self.schema, payload)
+        attrs = self.permit_attributes(self.schema, payload)
         obj = self.model()
         session = get_session()
 
@@ -81,7 +81,7 @@ class ApiBaseController(Controller):
     @mutating_endpoint
     @single_object_endpoint
     def _update_object(self, obj, payload):
-        attrs = self._permit_attributes(self.schema, payload)
+        attrs = self.permit_attributes(self.schema, payload)
         session = get_session()
 
         for k, v in attrs.items():

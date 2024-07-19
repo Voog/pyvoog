@@ -14,7 +14,7 @@ class Controller:
     DEFAULT_PER_PAGE = 250
     MAX_PER_PAGE = 250
 
-    def _permit_attributes(self, schema, payload):
+    def permit_attributes(self, schema, payload):
 
         """ Validate an incoming payload against a Marshmallow schema, return
         the loaded result. Cast validation errors to our ValidationError
