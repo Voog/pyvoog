@@ -21,6 +21,12 @@ class ApiBaseController(Controller):
     DEFAULT_INDEX_ORDER_FIELD = "id"
 
     def _api_endpoint(fn):
+
+        """ As we need to query `jwt_secret` from self, defer API endpoint
+        decorator construction until the first request - this is in turn wrapped
+        in our higher-order `_api_endpoint` decorator.
+        """
+
         decorated_fn = None
 
         @wraps(fn)
