@@ -3,6 +3,7 @@ import itertools
 from datetime import datetime, timezone
 from deepmerge import always_merger
 from marshmallow import Schema, fields, validate
+from sqlalchemy.event import listen
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy import Column, inspect, select, types
@@ -160,6 +161,7 @@ class ModelMetaclass(DeclarativeMeta):
 
         cls._set_va_attr_names()
         cls._declare_timestamps()
+        cls._attach_init_listener()
 
     def _set_va_attr_names(cls):
 
@@ -177,6 +179,17 @@ class ModelMetaclass(DeclarativeMeta):
 
         cls.created_at = Column(UTCTimeStamp(), default=func.now())
         cls.updated_at = Column(UTCTimeStamp(), default=func.now(), onupdate=func.now())
+
+    def _attach_init_listener(cls):
+
+        """ When a model is about to be (explicitly) instantiated, init it with
+        the default scope (if any). See also:
+
+        https://docs.sqlalchemy.org/en/20/orm/events.html#sqlalchemy.orm.InstanceEvents.init
+        """
+
+        if hasattr(cls, "default_scope"):
+            listen(cls, "init", cls._apply_default_scope)
 
 class Model:
 
@@ -283,5 +296,11 @@ class Model:
     def _get_attr_dict(self):
         schema_fields = self.__class__.__schema__().fields
         return {k: getattr(self, k) for k, v in schema_fields.items()}
+
+    def _apply_default_scope(self, args, kwargs):
+        scope = getattr(self, "default_scope", None)
+
+        if scope:
+            kwargs |= scope.__func__()
 
 Model = declarative_base(cls=Model, metaclass=ModelMetaclass)
