@@ -1,5 +1,7 @@
 from functools import wraps
 
+from werkzeug.exceptions import MethodNotAllowed
+
 from pyvoog.controller import Controller, \
     api_endpoint as make_api_endpoint_decorator, \
     scoped_endpoint, single_object_endpoint, mutating_endpoint
@@ -15,7 +17,7 @@ class ApiBaseController(Controller):
     - index_order_field - The default field to use for sorting index
       endpoint responses, `id` by default.
     - jwt_secret - base64-encoded JWT secret.
-    - allowed_methods - TODO
+    - allowed_actions - a list of allowed actions on this controller.
     """
 
     DEFAULT_INDEX_ORDER_FIELD = "id"
@@ -25,6 +27,9 @@ class ApiBaseController(Controller):
         """ As we need to query `jwt_secret` from self, defer API endpoint
         decorator construction until the first request - this is in turn wrapped
         in our higher-order `_api_endpoint` decorator.
+
+        Also, check whether the endpoint is enabled here and fail with HTTP/405
+        otherwise.
         """
 
         decorated_fn = None
@@ -32,6 +37,8 @@ class ApiBaseController(Controller):
         @wraps(fn)
         def wrapped(self, *args, **kwargs):
             nonlocal decorated_fn
+
+            self._raise_on_disallowed_action(fn)
 
             if decorated_fn is None:
                 decorated_fn = make_api_endpoint_decorator(jwt_secret=self.jwt_secret)(fn)
@@ -112,3 +119,9 @@ class ApiBaseController(Controller):
         session.add(obj)
 
         return (session, obj)
+
+    def _raise_on_disallowed_action(self, action):
+        allowed_actions = getattr(self, "allowed_actions", None)
+
+        if (allowed_actions is not None) and (action.__name__ not in self.allowed_actions):
+            raise MethodNotAllowed()
