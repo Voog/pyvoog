@@ -1,5 +1,6 @@
-
 import collections
+import importlib
+import inspect
 
 from collections.abc import Mapping, MutableMapping
 
@@ -40,3 +41,43 @@ def mapping_to_namedtuple(mapping, class_name):
         nt = nt._replace(**{k: mapping_to_namedtuple(v, class_name)})
 
     return nt
+
+def make_namespace_importer(module_template, subclass_of, return_class=False):
+
+    """ A function returning factory receiving a code, importing a module
+    based on the code, extracting a class from the imported module and
+    returning an instance of the class.
+
+    - module_template - A module name format string containing the `code`
+      placeholder, filled in by the factory for the resolved module name.
+    - subclass_of - A class acting as a filter - the imported module's
+      members are scanned and the first found class that is a strict
+      subclass of `subclass_of` is used for instantiation.
+    - return_class - Instead of instantiating the class, return the
+      class itself.
+
+    importlib raises a ModuleNotFoundError if the expected module cannot be
+    loaded; an ImportError is raised if the specified subclass is not
+    present in the module.
+    """
+
+    def cls_filter(m):
+        return inspect.isclass(m) \
+            and issubclass(m, subclass_of) \
+            and m is not subclass_of
+
+    def import_by_code(code, *args, **kwargs):
+        module_name = module_template.format(code=code)
+        module = importlib.import_module(module_name)
+
+        try:
+            cls = inspect.getmembers(module, cls_filter)[0][1]
+        except IndexError:
+            raise ImportError(f"Cannot find a {subclass_of.__name__} subclass in {module_name}")
+
+        if return_class:
+            return cls
+
+        return cls(*args, **kwargs)
+
+    return import_by_code
