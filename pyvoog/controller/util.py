@@ -9,8 +9,9 @@ import flask as fl
 import jwt as pyjwt
 import werkzeug.http
 
-from sqlalchemy import select
+from marshmallow import ValidationError as MarshmallowValidationError
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy import select
 from werkzeug.exceptions import BadRequest, MethodNotAllowed
 
 from pyvoog.db import get_session
@@ -153,8 +154,8 @@ def emit_http_codes(fn):
     - BadRequest — HTTP/400
     - AuthenticationError — HTTP/401
     - None return value or a NoResultFound exception — HTTP/404
-    - ValidationError — HTTP/422 with a payload describing the errors in
-      `errors`.
+    - ValidationError (pyvoog or vanilla Marshmallow) — HTTP/422 with a
+      payload describing the errors in `errors`.
     - NotImplementedError — HTTP/501.
     """
 
@@ -170,6 +171,8 @@ def emit_http_codes(fn):
             res = get_response_tuple(400)
         except ValidationError as e:
             res = (dict(errors=e.errors), 422)
+        except MarshmallowValidationError as e:
+            res = (dict(errors=e.normalized_messages()), 422)
         except NotImplementedError:
             res = get_response_tuple(501)
 
