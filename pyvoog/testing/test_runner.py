@@ -1,4 +1,5 @@
 import argparse
+import logging
 import sys
 import unittest
 
@@ -8,6 +9,7 @@ from alembic.migration import MigrationContext
 from attrs import define
 from sqlalchemy import MetaData
 
+from pyvoog.app import Application
 from pyvoog.db import setup_database
 
 @define
@@ -20,17 +22,22 @@ class TestRunner:
 
     Attributes, all optional:
 
-    - db_url - Test database URL.
     - alembic_config_fn - Alembic configuration file name. If passed, the
       database is checked to be fully migrated.
+    - app - Instance of the application under test. If passed, its `testing`
+      flag will be set to True.
+    - db_url - Test database URL.
+    - disable_logging - Set to False to leave logging on.
     - env_env_var - The env var name for specifying the application.
       environment. Only used for the migration error message for now.
     - test_dir - The directory containing test suites.
     """
 
-    db_url: str = None
-    env_env_var: str = None
     alembic_config_fn: str = None
+    app: Application = None
+    db_url: str = None
+    disable_logging: bool = True
+    env_env_var: str = None
     test_dir: str = "./lib/test"
 
     def run(self):
@@ -43,6 +50,12 @@ class TestRunner:
                 self._check_test_database(engine)
 
             self._truncate_test_database(engine)
+
+        if self.app:
+            self.app.testing = True
+
+        if self.disable_logging:
+            logging.disable()
 
         self._run(filter_string=args.filter, verbose=args.verbose)
 
