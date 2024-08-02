@@ -25,7 +25,8 @@ class TestRunner:
     - alembic_config_fn - Alembic configuration file name. If passed, the
       database is checked to be fully migrated.
     - app - Instance of the application under test. If passed, its `testing`
-      flag will be set to True.
+      flag will be set to True and it will be passed on to every TestCase as
+      its `app` attribute.
     - db_url - Test database URL.
     - disable_logging - Set to False to leave logging on.
     - env_env_var - The env var name for specifying the application.
@@ -97,12 +98,21 @@ class TestRunner:
             if isinstance(item, unittest.TestSuite):
                 test_cases += self._get_test_cases(item)
             elif isinstance(item, unittest.TestCase):
+                self._set_test_case_ctx(item)
                 test_cases.append(item)
             else:
                 raise TypeError(
                     "Encountered a bad TestSuite member ({})".format(type(item).__name__))
 
         return test_cases
+
+    def _set_test_case_ctx(self, test_case):
+
+        """ Pass on some context to each test case, only the current app
+        instance for now.
+        """
+
+        test_case.app = self.app
 
     def _check_test_database(self, engine):
 
