@@ -1,3 +1,4 @@
+import collections.abc
 import importlib
 import logging
 import re
@@ -40,6 +41,9 @@ class Router:
         """
 
         for path_prefix, resources in config.items():
+            if not isinstance(resources, collections.abc.Iterable):
+                resources = (resources,)
+
             for resource in resources:
                 self._route_resource(path_prefix, resource)
 
