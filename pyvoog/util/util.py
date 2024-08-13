@@ -81,3 +81,13 @@ def make_namespace_importer(module_template, subclass_of, return_class=False):
         return cls(*args, **kwargs)
 
     return import_by_code
+
+def make_repr(obj):
+
+    """ Generate an informative repr for `obj`. Consider using attrs, as it
+    provides a nice repr as a bonus.
+    """
+
+    attrs = ", ".join(f"{k}={v}" for k, v in vars(obj).items())
+
+    return f"<{type(obj).__name__}({attrs})>"
