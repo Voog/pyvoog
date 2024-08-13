@@ -1,15 +1,15 @@
-import collections.abc
 import importlib
 import logging
 import re
 
 import flask as fl
 
-from attrs import define, field
+from attrs import define
 from stringcase import pascalcase, snakecase
 
-from .resource import Resource
 from .endpoint import Endpoint
+from .namespace import Namespace
+from .resource import Resource
 
 @define
 class Router:
@@ -23,11 +23,12 @@ class Router:
         dict(path="{}/<int:_id>", methods=["DELETE"], action="delete")
     ]
 
-    def route(self, config):
+    def route(self, table):
 
-        """ Route requests to controllers based on the incoming configuration
-        dict mapping path prefixes to Resources containing Endpoints. A
-        Resource is not required to contain explicit endpoints — if no
+        """ Route requests to controllers based on the incoming iterable routing
+        table containing Resources (optionally wrapped in Namespaces), in turn
+        containing Endpoints specifying the actions handling matching requests.
+        A Resource is not required to contain explicit endpoints — if no
         endpoints are configured, a default set of RESTful endpoints for the
         resource are set up.
 
@@ -40,9 +41,18 @@ class Router:
         request.
         """
 
-        for path_prefix, resources in config.items():
-            if not isinstance(resources, collections.abc.Iterable):
-                resources = (resources,)
+        for namespace_or_resource in table:
+            if isinstance(namespace_or_resource, Namespace):
+                resources = namespace_or_resource.resources
+                path_prefix = namespace_or_resource.path_prefix
+            elif isinstance(namespace_or_resource, Resource):
+                resources = (namespace_or_resource,)
+                path_prefix = None
+            else:
+                raise TypeError(
+                    "Expected a Namespace or Resource in the routing table, "
+                    f"but received {namespace_or_resource}"
+                )
 
             for resource in resources:
                 self._route_resource(path_prefix, resource)
