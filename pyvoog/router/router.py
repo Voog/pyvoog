@@ -10,6 +10,7 @@ from stringcase import pascalcase, snakecase
 from .endpoint import Endpoint
 from .namespace import Namespace
 from .resource import Resource
+from .util import normalize_path
 
 @define
 class Router:
@@ -47,7 +48,7 @@ class Router:
                 path_prefix = namespace_or_resource.path_prefix
             elif isinstance(namespace_or_resource, Resource):
                 resources = (namespace_or_resource,)
-                path_prefix = None
+                path_prefix = "/"
             else:
                 raise TypeError(
                     "Expected a Namespace or Resource in the routing table, "
@@ -63,9 +64,7 @@ class Router:
                 f"Expected a Resource in router config, but received {resource}"
             )
 
-        path_prefix = re.sub(r"/+", "/", re.sub(r"^/+|/+$", "", path_prefix))
-        module_name = f"{self.controller_ns}.{path_prefix.replace('/', '.')}.{resource.name}"
-        module = importlib.import_module(module_name)
+        module = self._import_controller(path_prefix=path_prefix, resource=resource)
         controller_cls = getattr(module, f"{pascalcase(resource.name)}Controller")
         controller = controller_cls()
         endpoints = resource.endpoints if resource.endpoints else []
@@ -79,13 +78,13 @@ class Router:
                     f"Expected an Endpoint in Resource config, but received {endpoint}"
                 )
 
-            self._route_to_controller(controller, f"/{path_prefix}", endpoint)
+            self._route_to_controller(controller, path_prefix, endpoint)
 
     def _route_to_controller(self, controller, path_prefix, endpoint):
 
         """ Route paths (path prefix + endpoint path) to controller actions. """
 
-        path = f"{path_prefix}/{endpoint.path}"
+        path = normalize_path(f"{path_prefix}/{endpoint.path}")
         func = getattr(controller, endpoint.action)
         ctrlr_name = type(controller).__name__
         endpoint_name = snakecase(f"{ctrlr_name}_{endpoint.action}")
@@ -101,6 +100,13 @@ class Router:
           endpoint=endpoint_name,
           methods=endpoint.methods
         )
+
+    def _import_controller(self, path_prefix, resource):
+        stripped_path_prefix = re.sub(r"^/+", "", path_prefix)
+        ns_infix = f".{stripped_path_prefix.replace('/', '.')}." if stripped_path_prefix else "."
+        module_name = f"{self.controller_ns}{ns_infix}{resource.name}"
+
+        return importlib.import_module(module_name)
 
     def _populate_default_endpoints(self, name):
         return map(
