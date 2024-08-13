@@ -1,6 +1,6 @@
+from attrs import define, field
 
-from pyvoog.util import make_repr
-
+@define
 class Resource:
 
     """ A Resource represents a collection of related objects accessible via
@@ -11,10 +11,6 @@ class Resource:
     independently in the future.
     """
 
-    def __init__(self, name, endpoints=None, include_default_endpoints=False):
-        self.name = name
-        self.endpoints = endpoints
-        self.include_default_endpoints = include_default_endpoints
-
-    def __repr__(self):
-        return make_repr(self)
+    name: str
+    endpoints: list = None
+    include_default_endpoints: bool = False
