@@ -5,7 +5,7 @@ import re
 import flask as fl
 
 from attrs import define
-from stringcase import pascalcase, snakecase
+from stringcase import snakecase
 
 from .endpoint import Endpoint
 from .namespace import Namespace
@@ -65,7 +65,7 @@ class Router:
             )
 
         module = self._import_controller(path_prefix=path_prefix, resource=resource)
-        controller_cls = getattr(module, f"{pascalcase(resource.name)}Controller")
+        controller_cls = getattr(module, resource.ctrlr_class_name)
         controller = controller_cls()
         endpoints = resource.endpoints if resource.endpoints else []
 
@@ -104,7 +104,7 @@ class Router:
     def _import_controller(self, path_prefix, resource):
         stripped_path_prefix = re.sub(r"^/+", "", path_prefix)
         ns_infix = f".{stripped_path_prefix.replace('/', '.')}." if stripped_path_prefix else "."
-        module_name = f"{self.controller_ns}{ns_infix}{resource.name}"
+        module_name = f"{self.controller_ns}{ns_infix}{resource.ctrlr_module_name}"
 
         return importlib.import_module(module_name)
 
