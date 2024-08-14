@@ -7,11 +7,12 @@ from sqlalchemy.event import listen
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy import Column, inspect, select, types
-from sqlalchemy.orm import declared_attr, declarative_base
+from sqlalchemy.orm import declared_attr, declarative_base, object_session
 from sqlalchemy.sql import func
 from sqlalchemy.sql.sqltypes import Boolean, Integer, JSON, String
 from stringcase import snakecase
 
+from pyvoog.db import get_session
 from pyvoog.exceptions import ValidationError
 from pyvoog.util import Undefined
 from pyvoog.validatable import Validatable
@@ -264,6 +265,18 @@ class Model:
 
         if errors:
             raise ValidationError(errors, None, attrs)
+
+    def save(self):
+
+        """ A convenience method wrapping determining the appropriate session
+        (any session the object is already attached to, or the per-request
+        session), adding the object to the session and committing.
+        """
+
+        session = object_session(self) or get_session()
+
+        session.add(self)
+        session.commit()
 
     def as_dict(self):
         return {"id": self.id, **self._get_attr_dict()}
