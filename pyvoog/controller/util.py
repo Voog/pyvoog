@@ -4,6 +4,7 @@ import logging
 import re
 
 from datetime import datetime
+from urllib.parse import urlparse
 
 import flask as fl
 import jwt as pyjwt
@@ -14,8 +15,15 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy import select
 from werkzeug.exceptions import BadRequest, MethodNotAllowed
 
+from requests.exceptions import (
+    RequestException,
+    ConnectionError,
+    Timeout,
+    TooManyRedirects,
+)
+
 from pyvoog.db import get_session
-from pyvoog.exceptions import AuthenticationError, ValidationError
+from pyvoog.exceptions import AuthenticationError, ExternalError, ValidationError
 from pyvoog.signals import jwt_decoded
 from pyvoog.util import AllowException
 
@@ -217,6 +225,39 @@ def mutating_endpoint(fn):
     @functools.wraps(fn)
     def wrapped(self, *args, **kwargs):
         return fn(self, *args, payload=fl.request.get_json(), **kwargs)
+
+    return wrapped
+
+def handle_upstream_errors(fn):
+
+    """ Decorator to turn ExternalErrors into HTTP/502 responses and
+    selected Requests exceptions into detailed HTTP/5xx responses.
+    """
+
+    @functools.wraps(fn)
+    def wrapped(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except ExternalError as e:
+            extra_args = dict(external_message=e.external_message) if e.external_message else {}
+            return get_response_tuple(502, e.message, **extra_args)
+        except RequestException as e:
+            url = e.request.url
+            host = urlparse(url).hostname
+
+            if isinstance(e, Timeout):
+                code = 504
+                message = f"Timed out connecting to {host}"
+            elif isinstance(e, ConnectionError):
+                code = 500
+                message = f"Failed connecting to {host}"
+            elif isinstance(e, TooManyRedirects):
+                code = 502
+                message = f"The request to {url} resulted in too many redirects"
+            else:
+                raise e
+
+            return get_response_tuple(code, message, details=str(e))
 
     return wrapped
 
