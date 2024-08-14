@@ -230,28 +230,29 @@ class Model:
         cls.__schema__ = SchemaGenerator.generate_schema(cls)
 
     @classmethod
-    def get_scoped_query(cls, *args):
+    def get_unscoped_query(cls, *args):
 
-        """ Return a statement with any default scope defined by the model
-        applied. If any arguments are passed, these are forwarded to `select`
-        and the table is explicitly specified via `select_from`.
+        """ Return an unscoped Select. If any arguments are passed, these are
+        forwarded to `select` and the table is explicitly specified via
+        `select_from`.
+        """
+
+        return select(*args).select_from(cls) if args else select(cls)
+
+    @classmethod
+    def get_query(cls, *args):
+
+        """ Return a Select with any default scope defined by the model
+        applied. Arguments are forwarded to `get_unscoped_query`.
         """
 
         scope = getattr(cls, "default_scope", None)
-        query = select(*args).select_from(cls) if args else select(cls)
+        query = cls.get_unscoped_query(*args)
 
         if scope:
             query = query.filter_by(**scope())
 
         return query
-
-    @classmethod
-    @property
-    def scoped_query(self):
-
-        """ Property interface to `get_scoped_query`. """
-
-        return self.get_scoped_query()
 
     def validate(self):
         schema = self.__class__.__schema__()
