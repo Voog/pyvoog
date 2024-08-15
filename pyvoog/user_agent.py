@@ -13,12 +13,10 @@ class UserAgent:
         self.headers = headers
 
     def __getattr__(self, name):
-        def make_request(url, *args, headers={}, **kwargs):
+        def make_request(*args, headers={}, **kwargs):
             method = getattr(requests, name)
             headers = (headers or {}) | self.headers
 
-            return method(
-                url, *args, headers=headers, **kwargs
-            )
+            return method(*args, headers=headers, **kwargs)
 
         return make_request
