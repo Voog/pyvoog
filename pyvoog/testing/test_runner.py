@@ -3,6 +3,8 @@ import logging
 import sys
 import unittest
 
+from typing import Callable
+
 from alembic.config import Config as AlembicConfig
 from alembic.script import ScriptDirectory
 from alembic.migration import MigrationContext
@@ -11,6 +13,7 @@ from sqlalchemy import MetaData
 
 from pyvoog.app import Application
 from pyvoog.db import setup_database
+from pyvoog.testing.signals import app_ctx_pushed
 
 @define
 class TestRunner:
@@ -31,6 +34,8 @@ class TestRunner:
     - disable_logging - Set to False to leave logging on.
     - env_env_var - The env var name for specifying the application.
       environment. Only used for the migration error message for now.
+    - on_app_ctx_push - A callable invoked upon pushing a test app context.
+      Initialize any app context variables in the provided callback.
     - test_dir - The directory containing test suites.
     """
 
@@ -39,6 +44,7 @@ class TestRunner:
     db_url: str = None
     disable_logging: bool = True
     env_env_var: str = None
+    on_app_ctx_push: Callable = None
     test_dir: str = "./lib/test"
 
     def run(self):
@@ -57,6 +63,10 @@ class TestRunner:
 
         if self.disable_logging:
             logging.disable()
+
+        if self.on_app_ctx_push:
+            receiver = lambda _, **kwargs: self.on_app_ctx_push(**kwargs)
+            app_ctx_pushed.connect(receiver)
 
         self._run(filter_string=args.filter, verbose=args.verbose)
 
