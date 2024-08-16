@@ -17,12 +17,8 @@ class ControllerTestCase(TestCase):
         is a JSON object containing `id`, the persisted object is cleaned up.
         """
 
-        with controller_fixture(
-            self.app, jwt_secret=self.jwt_secret, jwt_payload=self.jwt_payload
-        ) as ua:
+        with self._bound_controller_fixture as ua:
             response = ua.post(self.ENDPOINT, json=payload)
-
-        with self.app.app_context():
             session = get_plain_session()
 
             try:
@@ -34,3 +30,9 @@ class ControllerTestCase(TestCase):
                 if model and (id is not None) and response.status_code < 400:
                     session.delete(session.get(model, id))
                     session.commit()
+
+    @property
+    def _bound_controller_fixture(self):
+        return controller_fixture(
+            self.app, jwt_secret=self.jwt_secret, jwt_payload=self.jwt_payload
+        )

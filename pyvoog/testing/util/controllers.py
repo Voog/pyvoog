@@ -5,6 +5,8 @@ import jwt
 
 from flask.testing import FlaskClient
 
+from .util import app_context
+
 class _AuthenticatedClient(FlaskClient):
     def __init__(
         self, *args, headers={}, jwt_payload=None, jwt_secret=None, set_jwt_exp=True, **kwargs
@@ -37,5 +39,5 @@ def controller_fixture(app, **client_kwargs):
 
     app.test_client_class = _AuthenticatedClient
 
-    with app.app_context():
+    with app_context(app):
         yield app.test_client(**client_kwargs)
