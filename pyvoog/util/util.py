@@ -27,7 +27,7 @@ class VanillaDict(dict):
     and remain dicts.
     """
 
-def mapping_to_namedtuple(mapping, class_name):
+def mapping_to_namedtuple(mapping, class_name="MappingToNamedtuple"):
 
     """ Recursively convert a mapping to a namedtuple. """
 
