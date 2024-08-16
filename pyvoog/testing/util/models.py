@@ -1,4 +1,23 @@
-from pyvoog.db import get_session
+from contextlib import contextmanager
+
+from pyvoog.db import get_session, get_plain_session
+
+@contextmanager
+def temporary_object(model, persist=False, **kwargs):
+
+    """ Temporarily persist a model instance, making it available within a
+    context manager and discarding it after use.
+    """
+
+    session = get_plain_session()
+    obj = create_object(model, session=session, **kwargs)
+
+    try:
+        yield obj
+    finally:
+        if not persist:
+            session.delete(obj)
+            session.commit()
 
 def create_object(model, session=None, **kwargs):
     session = session or get_session()
