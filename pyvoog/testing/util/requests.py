@@ -1,9 +1,11 @@
 from contextlib import contextmanager
 from time import time
 
+import flask as fl
 import jwt
 
 from flask.testing import FlaskClient
+from werkzeug.test import EnvironBuilder
 
 from .util import app_context
 
@@ -41,3 +43,13 @@ def controller_fixture(app, **client_kwargs):
 
     with app_context(app):
         yield app.test_client(**client_kwargs)
+
+def build_request(*args, **kwargs):
+
+    """ Forward arguments to EnvironBuilder and return a Flask Request based
+    on the constructed env.
+    """
+
+    builder = EnvironBuilder(*args, **kwargs)
+
+    return fl.Request(builder.get_environ())
