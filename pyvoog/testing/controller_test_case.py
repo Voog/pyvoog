@@ -3,9 +3,8 @@ from contextlib import contextmanager
 from unittest import TestCase
 
 from pyvoog.db import get_plain_session
-from pyvoog.testing.util.controllers import controller_fixture
 from pyvoog.testing.util.models import temporary_object
-from pyvoog.util import mapping_to_namedtuple
+from pyvoog.testing.util.requests import controller_fixture
 
 class ControllerTestCase(TestCase):
 
