@@ -29,7 +29,7 @@ class ControllerTestCase(TestCase):
         `self.ENDPOINT` is used as the default callback.
         """
 
-        with self._bound_controller_fixture as ua:
+        with self.bound_controller_fixture as ua:
             with temporary_object(model, **model_args) as obj:
                 if callable(endpoint):
                     effective_endpoint = endpoint(obj)
@@ -48,7 +48,7 @@ class ControllerTestCase(TestCase):
         is a JSON object containing `id`, the persisted object is cleaned up.
         """
 
-        with self._bound_controller_fixture as ua:
+        with self.bound_controller_fixture as ua:
             response = ua.post(self.ENDPOINT, json=payload)
             session = get_plain_session()
 
@@ -63,7 +63,12 @@ class ControllerTestCase(TestCase):
                     session.commit()
 
     @property
-    def _bound_controller_fixture(self):
+    def bound_controller_fixture(self):
+
+        """ Return a `controller_fixture` context manager bound to the app under
+        test and authentication credentials.
+        """
+
         return controller_fixture(
             self.app, jwt_secret=self.jwt_secret, jwt_payload=self.jwt_payload
         )

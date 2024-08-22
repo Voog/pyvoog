@@ -11,7 +11,7 @@ from pyvoog.db import get_session
 from pyvoog.exceptions import ValidationError
 
 class Controller:
-    DEFAULT_PER_PAGE = 250
+    DEFAULT_PER_PAGE = 50
     MAX_PER_PAGE = 250
 
     def permit_attributes(self, schema, payload):
@@ -98,7 +98,7 @@ class Controller:
     @property
     def _items_per_page(self):
         try:
-            per_page = int(fl.request.args.get("per_page"), self.DEFAULT_PER_PAGE)
+            per_page = int(fl.request.args.get("per_page") or self.DEFAULT_PER_PAGE)
         except Exception:
             per_page = self.DEFAULT_PER_PAGE
 
