@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-from pyvoog.db import get_session, get_plain_session
+from pyvoog.db import get_session
 
 @contextmanager
 def temporary_object(model, persist=False, **kwargs):
@@ -9,7 +9,7 @@ def temporary_object(model, persist=False, **kwargs):
     context manager and discarding it after use.
     """
 
-    session = get_plain_session()
+    session = get_session()
     obj = create_object(model, session=session, **kwargs)
 
     try:
