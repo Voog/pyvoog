@@ -97,7 +97,10 @@ class VirtualAttribute(Validatable):
         """ Attributes:
 
         - default - On lookup, return this value instead of raising a KeyError
-          if the lookup fails.
+          if the lookup fails. Note that this may be a callable, invoked
+          whenever a fallback value is required. A callable must be used for
+          referenced data structures (like dicts or lists) to avoid leakage
+          across model instances.
         - schemaless_field - Name of the backing JSON or TEXT column.
         """
 
@@ -116,6 +119,8 @@ class VirtualAttribute(Validatable):
         except (KeyError, TypeError):
             if self.default == Undefined:
                 raise
+            elif callable(self.default):
+                return self.default()
             else:
                 return self.default
 
