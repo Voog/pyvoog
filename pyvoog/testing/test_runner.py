@@ -1,5 +1,6 @@
 import argparse
 import logging
+import re
 import sys
 import unittest
 
@@ -68,9 +69,9 @@ class TestRunner:
             receiver = lambda _, **kwargs: self.on_app_ctx_push(**kwargs)
             app_ctx_pushed.connect(receiver)
 
-        self._run(filter_string=args.filter, verbose=args.verbose)
+        self._run(filter_regex=args.filter, verbose=args.verbose)
 
-    def _run(self, filter_string=None, verbose=True):
+    def _run(self, filter_regex=None, verbose=True):
         suite = unittest.defaultTestLoader.discover(self.test_dir, pattern="test_*.py")
 
         if errors := unittest.defaultTestLoader.errors:
@@ -78,20 +79,21 @@ class TestRunner:
 
             raise SystemExit(2)
 
-        suite = self._filter_suite(suite, filter_string)
+        suite = self._filter_suite(suite, filter_regex)
         runner = unittest.TextTestRunner(verbosity=(2 if verbose else 1))
         exit_value = 0 if runner.run(suite).wasSuccessful() else 1
 
         raise SystemExit(exit_value)
 
-    def _filter_suite(self, suite, filter_str):
+    def _filter_suite(self, suite, filter_regex):
         filtered_suite = unittest.TestSuite()
         test_cases = self._get_test_cases(suite)
+        pattern = re.compile(filter_regex) if filter_regex else None
 
         for test_case in test_cases:
             nonrunnable = type(test_case).__dict__.get("NONRUNNABLE_BASE_CLASS", False)
 
-            if (not filter_str or filter_str in test_case.id()) and not nonrunnable:
+            if (not pattern or (pattern.search(test_case.id()) is not None)) and not nonrunnable:
                 filtered_suite.addTest(test_case)
 
         return filtered_suite
@@ -177,7 +179,7 @@ class TestRunner:
 
         parser.add_argument(
             "-f", "--filter", type=str,
-            help="Only run tests whose fully qualified name contains the given string"
+            help="Only run tests whose fully qualified name matches the given regex"
         )
         parser.add_argument(
             "-v", "--verbose", default=False, action="store_true",
