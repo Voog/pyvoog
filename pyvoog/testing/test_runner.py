@@ -1,5 +1,6 @@
 import argparse
 import logging
+import random
 import re
 import sys
 import unittest
@@ -69,6 +70,7 @@ class TestRunner:
             receiver = lambda _, **kwargs: self.on_app_ctx_push(**kwargs)
             app_ctx_pushed.connect(receiver)
 
+        self._init_rng(args.random_seed)
         self._run(filter_regex=args.filter, verbose=args.verbose)
 
     def _run(self, filter_regex=None, verbose=True):
@@ -115,6 +117,8 @@ class TestRunner:
             else:
                 raise TypeError(
                     "Encountered a bad TestSuite member ({})".format(type(item).__name__))
+
+        random.shuffle(test_cases)
 
         return test_cases
 
@@ -182,13 +186,28 @@ class TestRunner:
             help="Only run tests whose fully qualified name matches the given regex"
         )
         parser.add_argument(
+            "-r", "--random-seed", type=int,
+            help="Seed for the random number generator"
+        )
+        parser.add_argument(
             "-v", "--verbose", default=False, action="store_true",
             help="Increase verbosity"
         )
 
         return parser.parse_args()
 
-    @staticmethod
-    def _err(*args):
-        print("ERROR:", *args, file=sys.stderr)
+    def _init_rng(self, randseed=None):
+        if randseed is None:
+            randseed = random.randint(0, 9999)
+
+        random.seed(randseed)
+
+        self._print_stderr(f"Using random seed {randseed} for shuffling test cases")
+
+    def _err(self, *args):
+        self._print_stderr("ERROR:", *args)
         raise SystemExit(2)
+
+    @staticmethod
+    def _print_stderr(*args):
+        print(*args, file=sys.stderr)
