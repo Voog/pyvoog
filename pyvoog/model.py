@@ -1,4 +1,5 @@
 import itertools
+import types
 
 from datetime import datetime, timezone
 from deepmerge import always_merger
@@ -6,7 +7,7 @@ from marshmallow import Schema, fields, validate
 from sqlalchemy.event import listen
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy import Column, inspect, select, types
+from sqlalchemy import Column, inspect, select, types as sa_types
 from sqlalchemy.orm import declared_attr, declarative_base, object_session
 from sqlalchemy.sql import func
 from sqlalchemy.sql.sqltypes import Boolean, Integer, JSON, String
@@ -92,6 +93,19 @@ class VirtualAttribute(Validatable):
     ModelMetaClass.
     """
 
+    ALLOWED_PLAIN_DEFAULT_TYPES = (
+        bool,
+        bytes,
+        float,
+        frozenset,
+        int,
+        str,
+        tuple,
+        types.NoneType,
+        types.LambdaType,
+        types.FunctionType,
+    )
+
     def __init__(self, default=Undefined, schemaless_field="schemaless"):
 
         """ Attributes:
@@ -105,6 +119,15 @@ class VirtualAttribute(Validatable):
         """
 
         super().__init__()
+
+        if default != Undefined and not any(
+            isinstance(default, t) for t in self.ALLOWED_PLAIN_DEFAULT_TYPES
+        ):
+            raise TypeError(
+                f"It is not allowed to directly assign a VirtualAttribute default of type "
+                f"`{type(default).__name__}`, as mutable types may leak data across "
+                "model instances. Use the callable form of `default` instead."
+            )
 
         self.default = default
         self.schemaless_field = schemaless_field
@@ -133,7 +156,7 @@ class VirtualAttribute(Validatable):
     def _set_attr_name(self, attr_name):
         self.attr_name = attr_name
 
-class UTCTimeStamp(types.TypeDecorator):
+class UTCTimeStamp(sa_types.TypeDecorator):
 
     """ An SQLAlchemy type decorator for converting and storing all incoming
     timestamps as UTC and returning these as such. Note that SQLite drops
@@ -146,7 +169,7 @@ class UTCTimeStamp(types.TypeDecorator):
     https://mike.depalatis.net/blog/sqlalchemy-timestamps.html
     """
 
-    impl = types.DateTime
+    impl = sa_types.DateTime
     cache_ok = True
 
     def process_bind_param(self, value: datetime, dialect):
