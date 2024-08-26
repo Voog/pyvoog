@@ -3,6 +3,8 @@
 
 import logging
 
+from functools import partial
+
 import flask as fl
 
 class PrefixedLogRecord(logging.LogRecord):
@@ -14,6 +16,51 @@ class PrefixedLogRecord(logging.LogRecord):
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
         self.prefix = "" if name == "root" else "[{}] ".format(name)
+
+class ContextfulLogger:
+
+    """ A convenience class providing logging methods matching the level
+    names in `logging`. Invocations are forwarded to `logging.log` with the
+    appropriate level. A prefix constructed from the positional and keyword
+    args to the constructor (modifiable by `amend_context`) is prepended to
+    each log message.
+    """
+
+    LOGGABLE_LEVELS = [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug"
+    ]
+
+    def __init__(self, *args, **kwargs):
+        self.ctx_args = list(args)
+        self.ctx_kwargs = kwargs
+
+        self._prefix = self._compile_prefix()
+
+    def amend_context(self, *args, **kwargs):
+        self.ctx_args.extend(args)
+        self.ctx_kwargs |= kwargs
+
+        self._prefix = self._compile_prefix()
+
+    def _log(self, level, msg, *args, **kwargs):
+        logging.log(level, f"{self._prefix} {msg}", *args, **kwargs)
+
+    def _compile_prefix(self):
+        args_prefix = ', '.join(self.ctx_args)
+        kwargs_prefix = ', '.join(f"{k}={v}" for k, v in self.ctx_kwargs.items())
+        separator = ", " if args_prefix and kwargs_prefix else ""
+
+        return f"[{args_prefix}{separator}{kwargs_prefix}]"
+
+    def __getattr__(self, name):
+        if name in self.LOGGABLE_LEVELS:
+            return partial(self._log, getattr(logging, name.upper()))
+
+        raise AttributeError(f"Cannot forward `{name}` to the `logging` module")
 
 def setup_logging(level_str, extra_level_str):
 
