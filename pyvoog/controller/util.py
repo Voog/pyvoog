@@ -23,7 +23,14 @@ from requests.exceptions import (
 )
 
 from pyvoog.db import get_session
-from pyvoog.exceptions import AuthenticationError, ExternalError, ValidationError
+
+from pyvoog.exceptions import (
+    AuthenticationError,
+    ExternalError,
+    ExternalAuthenticationError,
+    ValidationError,
+)
+
 from pyvoog.signals import jwt_decoded
 from pyvoog.util import AllowException
 
@@ -165,6 +172,8 @@ def emit_http_codes(fn):
     - ValidationError (pyvoog or vanilla Marshmallow) — HTTP/422 with a
       payload describing the errors in `errors`.
     - NotImplementedError — HTTP/501.
+
+    See also `handle_upstream_errors` for a complementary decorator.
     """
 
     @functools.wraps(fn)
@@ -230,8 +239,11 @@ def mutating_endpoint(fn):
 
 def handle_upstream_errors(fn):
 
-    """ Decorator to turn ExternalErrors into HTTP/502 responses and
-    selected Requests exceptions into detailed HTTP/5xx responses.
+    """ Decorator to turn ExternalAuthenticationErrors into HTTP/401
+    responses, all other ExternalErrors into HTTP/502 responses and selected
+    Requests exceptions into detailed HTTP/5xx responses.
+
+    See also `emit_http_codes` for a complementary decorator.
     """
 
     @functools.wraps(fn)
@@ -240,7 +252,9 @@ def handle_upstream_errors(fn):
             return fn(*args, **kwargs)
         except ExternalError as e:
             extra_args = dict(external_message=e.external_message) if e.external_message else {}
-            return get_response_tuple(502, e.message, **extra_args)
+            code = 401 if isinstance(e, ExternalAuthenticationError) else 502
+
+            return get_response_tuple(code, e.message, **extra_args)
         except RequestException as e:
             url = e.request.url
             host = urlparse(url).hostname
