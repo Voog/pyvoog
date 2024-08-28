@@ -1,16 +1,20 @@
 import requests
 
+from attrs import define, field
+
+@define
 class UserAgent:
 
     """ A thin wrapper around Requests automatically adding a set of headers
     to the request. A User-Agent may be added as a shortcut.
     """
 
-    def __init__(self, headers={}, user_agent=None):
-        if user_agent:
-            headers = headers | {"User-Agent": user_agent}
+    user_agent: str = None
+    headers: dict = {}
 
-        self.headers = headers
+    def __attrs_post_init__(self):
+        if self.user_agent:
+            self.headers = self.headers | {"User-Agent": self.user_agent}
 
     def __getattr__(self, name):
         def make_request(*args, headers={}, **kwargs):
