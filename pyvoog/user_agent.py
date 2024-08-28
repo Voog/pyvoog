@@ -19,7 +19,7 @@ class UserAgent:
     def __getattr__(self, name):
         def make_request(*args, headers={}, **kwargs):
             method = getattr(requests, name)
-            headers = (headers or {}) | self.headers
+            headers = self.headers | headers
 
             return method(*args, headers=headers, **kwargs)
 
