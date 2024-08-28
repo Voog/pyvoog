@@ -6,11 +6,14 @@ from attrs import define, field
 class UserAgent:
 
     """ A thin wrapper around Requests automatically adding a set of headers
-    to the request. A User-Agent may be added as a shortcut.
+    to the request. A User-Agent may be added as a shortcut. All other
+    arguments to `request` (or rather its wrappers) may be set on the
+    instance by `default_rq_args`.
     """
 
     user_agent: str = None
     headers: dict = {}
+    default_rq_args: dict = {}
 
     def __attrs_post_init__(self):
         if self.user_agent:
@@ -20,7 +23,8 @@ class UserAgent:
         def make_request(*args, headers={}, **kwargs):
             method = getattr(requests, name)
             headers = self.headers | headers
+            extra_rq_kwargs = self.default_rq_args | kwargs
 
-            return method(*args, headers=headers, **kwargs)
+            return method(*args, headers=headers, **extra_rq_kwargs)
 
         return make_request
