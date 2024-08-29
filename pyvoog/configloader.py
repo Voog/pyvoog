@@ -1,6 +1,6 @@
 
 from pyvoog.exceptions import NotInitializedError
-from pyvoog.util import mapping_to_namedtuple
+from pyvoog.util.mapping import mapping_to_namedtuple
 
 import importlib
 import os
