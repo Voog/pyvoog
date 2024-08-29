@@ -17,6 +17,38 @@ class PrefixedLogRecord(logging.LogRecord):
         super().__init__(name, *args, **kwargs)
         self.prefix = "" if name == "root" else "[{}] ".format(name)
 
+class MultilineLogRecord(logging.LogRecord):
+
+    """ A LogRecord subclass splitting incoming messages on newlines and
+    converting each to a LogRecord of type `constituent_cls`
+    """
+
+    def __init__(self, name, level, fn, lno, msg, *args, constituent_cls=None, **kwargs):
+        self.constituents = (
+            constituent_cls(name, level, fn, lno, line, *args, *kwargs) for line in msg.split("\n")
+        )
+
+        super().__init__(name, level, fn, lno, msg, *args, **kwargs)
+
+
+class MultilineFormatter(logging.Formatter):
+
+    """ A formatter for MultilineLogRecords, formatting each constituent
+    record independently and returning the concatenated result.
+    """
+
+    def format(self, record):
+        if not isinstance(record, MultilineLogRecord):
+            raise TypeError(
+                "MultilineFormatter can only format MultilineLogRecords, "
+                f"but received {type(record).__name__}"
+            )
+
+        return "\n".join(
+            super(MultilineFormatter, self).format(line_record)
+            for line_record in record.constituents
+        )
+
 class ContextfulLogger:
 
     """ A convenience class providing logging methods matching the level
@@ -68,7 +100,9 @@ def setup_logging(level_str, extra_level_str):
     log level differentiation for SQLAlchemy loggers.
     """
 
+    root_logger = logging.getLogger()
     level = getattr(logging, level_str.upper())
+    formatter = MultilineFormatter("%(asctime)s %(levelname)7s: %(prefix)s%(message)s")
 
     extra_loggers = (
         "sqlalchemy.pool",
@@ -78,7 +112,9 @@ def setup_logging(level_str, extra_level_str):
     )
 
     logging.setLogRecordFactory(make_log_record)
-    logging.basicConfig(format="%(asctime)s %(levelname)7s: %(prefix)s%(message)s", level=level)
+    logging.basicConfig(level=level)
+
+    root_logger.handlers[0].setFormatter(formatter)
 
     if extra_level_str:
         extra_level = getattr(logging, extra_level_str.upper())
@@ -92,7 +128,9 @@ def make_log_record(name, level, fn, lno, msg, args, exc_info, func=None, sinfo=
     Implement path name extraction when desired.
     """
 
-    return PrefixedLogRecord(name, level, None, lno, msg, args, exc_info, func, sinfo)
+    return MultilineLogRecord(
+        name, level, None, lno, msg, args, exc_info, func, sinfo, constituent_cls=PrefixedLogRecord
+    )
 
 def log_requests(app, make_log_string=None):
 
