@@ -46,8 +46,6 @@ def get_session(key="session", cls=ValidatingSession):
     progress.
     """
 
-    app = fl.current_app
-
     if key not in fl.g:
         logging.debug(f"Setting up per-request session '{key}'")
 
@@ -65,7 +63,6 @@ def get_plain_session():
     return get_session(key="plain_session", cls=Session)
 
 def teardown_sessions(exc):
-    app = fl.current_app
     session_keys = list(filter(lambda k: isinstance(fl.g.get(k), _PerRequestSession), fl.g))
 
     for key in session_keys:
