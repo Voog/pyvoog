@@ -163,3 +163,6 @@ def make_request_log_string(request, response):
         f"Completed {request.method} {request.path} for {request.remote_addr} "
         f"with {response.status}"
     )
+
+def get_logger_level(name=None):
+    return logging.getLogger(name).level
