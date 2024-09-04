@@ -74,7 +74,7 @@ function main {
     local PYVOOG="$(poetry version | cut -d\  -f1)"
     
     [[ -z "$TOKEN" ]] && TOKEN=$(<<<"$DEFAULT_TOKEN_ENC" base64 -di | gpg -qd)
-    [[ -z "$TOKEN" ]] && usage
+    [[ -z "$TOKEN" || -z "$VERSION" ]] && usage
 
     yesno "Bump version to $VERSION, commit and set tag to $TAG?"
 
