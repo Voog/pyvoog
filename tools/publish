@@ -19,6 +19,7 @@ DEFAULT_TOKEN_ENC="
 
 TOKEN=""
 VERSION=""
+PYPROJECT_FN="pyproject.toml"
 
 set -euo pipefail
 
@@ -38,9 +39,8 @@ function parse_args {
 }
 
 function err_on_dirty_state {
-    (git diff --quiet && git diff --cached --quiet) || \
-        err "Please ensure working directory and index " \
-            "are in a clean state before bumping version."
+    (git diff --quiet $PYPROJECT_FN && git diff --cached --quiet $PYPROJECT_FN) || \
+        err "$PYPROJECT_FN is not in a clean state - quitting"
 }
 
 function yesno {
@@ -79,7 +79,8 @@ function main {
     yesno "Bump version to $VERSION, commit and set tag to $TAG?"
 
     sed -i 's/version\s*=.*/version = "'$VERSION'"/' pyproject.toml
-    git commit -am "Bump version to $VERSION"
+    git add "$PYPROJECT_FN"
+    git commit -m "Bump version to $VERSION"
     git tag $TAG
     
     yesno "Remove ${BUILD_DIR}/${PYVOOG}*, build and deploy v${VERSION} to PyPI?"
