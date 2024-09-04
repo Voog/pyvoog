@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+
+DEFAULT_TOKEN_ENC="
+    hQIMA0WMEdBFOh/HAQ//aAAKMfbFY6BArAPL6ZzMBhKdc+ED3rorjsK5tHKnJDrg9gBiiXtfA65R
+    5ZcuLfd0IezuTj/8bckyOyM8o9fhrv0U74uLFz5BMvgY2ghTRDasYAS0T/CNrQmGwTJk2pMwJIr6
+    hQtJ7AqieevA45EMYtgl4UIDoxNAXkwlSdTjkMOnsNJPEhyWxdNRhrbYNIW4NNtwnhGq5slVEZWX
+    G9ou7GWwcFtMwgqErm/m6Y53TylceYmrNjh+lrPJaVvWePdtZppbyaR1r4w2Ht0RzaHP2c8cg93D
+    JXw7l65zQlqKsVuV0eUEhImMkFk9VntylxoYOZ+t6Ifh1hqGOTAA860G8NY+LjLsJPp183pdZJYF
+    nket73rIbHcFxDNmqmHvvQTcUyWimoCQBgGhLsuDS3SC8almMKNahasRHJwgVjmZr3UWqbP7C1Do
+    PsvgfWJLVvYA8CYPKkpB6SG9OUboQEz7gLLvxqPL91tavlkIwcgY4VtcQ4v0u1VQeJ9ixfH67hOW
+    ynQdLD2CvoFsBiV6JWRxI40Of/WaTtkSSQVhz6pILRijI0LqFV3Su9lFL16LtG/IsxYad/+EOp4N
+    fLb/q7oqJbf+Yk73W8VUtt97OnnUOgriis0KR44SaL1Kuc6tyfcQJuezCkQsGU2jpGk+hWvnJn1O
+    TMfphPA4oEHeAav+Z0jUwCwBCQIQ+dfYBr6c0pLVDmyVdePo1Xot3LujpeG4eSfMKZUI5LC1Jdc2
+    BGUosSAKDJLhuBrxvhsmYnXi9mDay0wDR9e8YyhgSfZF9pNBc4BEiYa5qny3uAdBBAS7MBLDsZ5x
+    9VilySbmS/Xn8lOM3J6k/jF31lPikrFFF4S1dNMVEm9Qm3/kTUJKPBoGD1tdGnyKNmLpXuyS4PKk
+    9pvsFCGgK3gMObMv5nh3z4Rajl/54szmWr+SB3HI5ENovY7cG8s7SdT/sbAaqZSChVMI/NKvqKhV
+    3ZiqY4aZ84MYKjWGMiAwibyKDkoBNTYPWw==
+"
+
+TOKEN=""
+VERSION=""
+
+set -euo pipefail
+
+function parse_args {
+    while getopts "t:" OPT; do
+        case $OPT in
+            t ) TOKEN=$OPTARG  ;;
+        esac
+    done
+    
+    shift $((OPTIND-1))
+    set +u
+    
+    VERSION="$1"    
+    
+    set -u
+}
+
+function err_on_dirty_state {
+    (git diff --quiet && git diff --cached --quiet) || \
+        err "Please ensure working directory and index " \
+            "are in a clean state before bumping version."
+}
+
+function yesno {
+	echo -n $1" [y/n] "
+	read YESNO
+	[[ $YESNO == "y" ]] && return 0
+	[[ $YESNO == "n" ]] && return 1
+
+	echo "Please answer [y]es or [n]o"
+	yesno $@
+}
+
+function err {
+    echo $@ >&2
+    exit 1
+}
+
+function usage {
+    err "Usage: $0 [-t pypi-token] version"
+}
+
+function main {
+    cd "$(dirname $0)/.."    
+    source venv/bin/activate
+    
+    parse_args $@
+    err_on_dirty_state
+    
+    local TAG="v${VERSION}"
+    local BUILD_DIR="$(pwd)/dist"
+    local PYVOOG="$(poetry version | cut -d\  -f1)"
+    
+    [[ -z "$TOKEN" ]] && TOKEN=$(<<<"$DEFAULT_TOKEN_ENC" base64 -di | gpg -qd)
+    [[ -z "$TOKEN" ]] && usage
+
+    yesno "Bump version to $VERSION, commit and set tag to $TAG?"
+
+    sed -i 's/version\s*=.*/version = "'$VERSION'"/' pyproject.toml
+    git commit -am "Bump version to $VERSION"
+    git tag $TAG
+    
+    yesno "Remove ${BUILD_DIR}/${PYVOOG}*, build and deploy v${VERSION} to PyPI?"
+    
+    rm -v ${BUILD_DIR}/${PYVOOG}*
+    poetry --build --username=__token__ --password="$TOKEN" publish
+}
+
+main $@
