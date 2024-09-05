@@ -25,9 +25,11 @@ class ConfigLoader:
 
     def __init__(self, envvar=None, env=None, overwrite_prefix=None):
         config = self._load_env("default")
+        env_from_env = envvar and os.environ.get(envvar, None)
+        effective_env = env_from_env or env
 
-        if ((envvar and (env := os.environ.get(envvar, None))) or env):
-            config.update(self._load_env(env))
+        if effective_env:
+            config.update(self._load_env(effective_env))
 
         self.env = env
         self.config = config
