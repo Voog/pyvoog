@@ -25,7 +25,7 @@ class ApiBaseController(Controller):
     @scoped_endpoint
     def index(self, query):
         return (
-            self._paginate(query, order_by=self._index_order_field, descending=True),
+            self.paginate(query, order_by=self._index_order_field, descending=True),
             200,
         )
 

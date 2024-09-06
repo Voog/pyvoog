@@ -27,7 +27,7 @@ class Controller:
             e.__class__ = ValidationError
             raise
 
-    def _paginate(self, query, order_by, descending=False, payload_key=None):
+    def paginate(self, query, order_by, descending=False, payload_key=None):
 
         """ Given an SQLAlchemy statement (`query`) and the name of the column
         determining ordering, paginate output and return a dict. The key of the
