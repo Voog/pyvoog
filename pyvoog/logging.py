@@ -94,7 +94,7 @@ class ContextfulLogger:
 
         raise AttributeError(f"Cannot forward `{name}` to the `logging` module")
 
-def setup_logging(level_str, extra_level_str):
+def setup_logging(level_str, extra_level_str, custom_extra_loggers=()):
 
     """ Set up logging with timestamped and prefixed log records, allowing
     log level differentiation for SQLAlchemy loggers.
@@ -119,7 +119,7 @@ def setup_logging(level_str, extra_level_str):
     if extra_level_str:
         extra_level = getattr(logging, extra_level_str.upper())
 
-        for logger in extra_loggers:
+        for logger in extra_loggers + custom_extra_loggers:
             logging.getLogger(logger).setLevel(extra_level)
 
 def make_log_record(name, level, fn, lno, msg, args, exc_info, func=None, sinfo=None, **kwargs):
