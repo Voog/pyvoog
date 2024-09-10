@@ -1,8 +1,8 @@
 import logging
 
 from collections import namedtuple
-from functools import partial
-from itertools import chain, filterfalse
+from contextlib import contextmanager
+from itertools import chain
 
 import flask as fl
 
@@ -69,4 +69,13 @@ def teardown_sessions(exc):
         logging.debug(f"Tearing down per-request session '{key}'")
 
         session = fl.g.pop(key).value
+        session.close()
+
+@contextmanager
+def temporary_session(cls=ValidatingSession):
+    session = cls(_engine)
+
+    try:
+        yield session
+    finally:
         session.close()
