@@ -79,8 +79,8 @@ def single_object_endpoint(fn):
 
     @functools.wraps(fn)
     def look_up_object(fn):
-        def wrapped(self, *args, _id, query, **kwargs):
-            obj = get_session().execute(query.filter_by(id=_id)).scalar_one()
+        def wrapped(self, *args, id, query, **kwargs):
+            obj = get_session().execute(query.filter_by(id=id)).scalar_one()
             return fn(self, *args, obj=obj, **kwargs)
 
         return wrapped

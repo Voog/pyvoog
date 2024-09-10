@@ -19,9 +19,9 @@ class Router:
     DEFAULT_ENDPOINTS_TEMPLATE = [
         dict(path="{}s", methods=["GET"], action="index"),
         dict(path="{}s", methods=["POST"], action="create"),
-        dict(path="{}/<int:_id>", methods=["GET"], action="get"),
-        dict(path="{}/<int:_id>", methods=["PUT"], action="update"),
-        dict(path="{}/<int:_id>", methods=["DELETE"], action="delete")
+        dict(path="{}/<int:id>", methods=["GET"], action="get"),
+        dict(path="{}/<int:id>", methods=["PUT"], action="update"),
+        dict(path="{}/<int:id>", methods=["DELETE"], action="delete")
     ]
 
     def route(self, table):
