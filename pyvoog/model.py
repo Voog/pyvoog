@@ -1,6 +1,8 @@
 import itertools
 import types
 
+import sqlalchemy
+
 from datetime import datetime, timezone
 from deepmerge import always_merger
 from marshmallow import Schema, fields, validate
@@ -275,13 +277,26 @@ class Model:
         applied. Arguments are forwarded to `get_unscoped_query`.
         """
 
-        scope = getattr(cls, "default_scope", None)
-        query = cls.get_unscoped_query(*args)
+        return cls._apply_default_scope_to_stmt(cls.get_unscoped_query(*args))
 
-        if scope:
-            query = query.filter_by(**scope())
+    @classmethod
+    def get_unscoped_statement(cls, verb, *args):
 
-        return query
+        """ A generalization of `get_unscoped_query` for any SQL verb. Return an
+        unscoped statement object. If any arguments are passed, these are
+        forwarded to the selected method.
+        """
+
+        return getattr(sqlalchemy, verb)(cls, *args)
+
+    @classmethod
+    def get_statement(cls, verb, *args):
+
+        """ A generalization of `get_query` for any SQL verb. The default scope
+        has been applied to the returned statement.
+        """
+
+        return cls._apply_default_scope_to_stmt(cls.get_unscoped_statement(verb, *args))
 
     def validate(self):
         schema = self.__class__.__schema__()
@@ -317,6 +332,15 @@ class Model:
     def attributes(self, attrs):
         for k, v in attrs.items():
             setattr(self, k, v)
+
+    @classmethod
+    def _apply_default_scope_to_stmt(cls, stmt):
+        scope = getattr(cls, "default_scope", None)
+
+        if scope:
+            stmt = stmt.filter_by(**scope())
+
+        return stmt
 
     def _run_attr_validations(self):
         columns = inspect(self.__class__).c
