@@ -112,8 +112,11 @@ def setup_logging(level_str, extra_level_str, custom_extra_loggers=()):
     )
 
     logging.setLogRecordFactory(make_log_record)
-    logging.basicConfig(level=level)
 
+    if not root_logger.handlers:
+        logging.basicConfig()
+
+    root_logger.setLevel(level)
     root_logger.handlers[0].setFormatter(formatter)
 
     if extra_level_str:
