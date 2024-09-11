@@ -15,6 +15,7 @@ from sqlalchemy import MetaData
 
 from pyvoog.app import Application
 from pyvoog.db import setup_database
+from pyvoog.logging import setup_logging
 from pyvoog.testing.signals import app_ctx_pushed
 
 @define
@@ -33,7 +34,6 @@ class TestRunner:
       flag will be set to True and it will be passed on to every TestCase as
       its `app` attribute.
     - db_url - Test database URL.
-    - disable_logging - Set to False to leave logging on.
     - env_env_var - The env var name for specifying the application.
       environment. Only used for the migration error message for now.
     - on_app_ctx_push - A callable invoked upon pushing a test app context.
@@ -44,7 +44,6 @@ class TestRunner:
     alembic_config_fn: str = None
     app: Application = None
     db_url: str = None
-    disable_logging: bool = True
     env_env_var: str = None
     on_app_ctx_push: Callable = None
     test_dir: str = "./lib/test"
@@ -63,7 +62,9 @@ class TestRunner:
         if self.app:
             self.app.testing = True
 
-        if self.disable_logging:
+        if args.loglevel:
+            setup_logging(args.loglevel, args.extra_loglevel)
+        else:
             logging.disable()
 
         if self.on_app_ctx_push:
@@ -184,6 +185,13 @@ class TestRunner:
         parser.add_argument(
             "-f", "--filter", type=str,
             help="Only run tests whose fully qualified name matches the given regex"
+        )
+        parser.add_argument(
+            "-l", "--loglevel", default=None, type=str,
+            help="Enable logging with the given log level"
+        )
+        parser.add_argument(
+            "--extra-loglevel", type=str, help="Log level for extra SQLAlchemy loggers"
         )
         parser.add_argument(
             "-r", "--random-seed", type=int,
