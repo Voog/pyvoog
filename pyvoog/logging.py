@@ -37,6 +37,8 @@ class MultilineFormatter(logging.Formatter):
     """
 
     def format(self, record):
+        formatted_lines = []
+
         if not isinstance(record, MultilineLogRecord):
             raise TypeError(
                 "MultilineFormatter can only format MultilineLogRecords, "
@@ -47,14 +49,17 @@ class MultilineFormatter(logging.Formatter):
             super_instance = super(MultilineFormatter, self)
 
             try:
-                return super_instance.format(line_record)
+                formatted_lines.append(super_instance.format(line_record))
             except TypeError:
 
                 # When breaking on newlines, message placeholders may not be present in
                 # the resulting constituent records, resulting in formatting failures.
                 # Fall back to formatting the entire record in such cases.
 
-                super_instance.format(record)
+                formatted_lines = (super_instance.format(record),)
+                break
+
+        return "\n".join(formatted_lines)
 
 class ContextfulLogger:
 
