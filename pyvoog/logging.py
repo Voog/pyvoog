@@ -17,7 +17,7 @@ class PrefixedLogRecord(logging.LogRecord):
         super().__init__(name, *args, **kwargs)
         self.prefix = "" if name == "root" else "[{}] ".format(name)
 
-class MultilineLogRecord(logging.LogRecord):
+class MultilineLogRecord(PrefixedLogRecord):
 
     """ A LogRecord subclass splitting incoming messages on newlines and
     converting each to a LogRecord of type `constituent_cls`
@@ -29,7 +29,6 @@ class MultilineLogRecord(logging.LogRecord):
         )
 
         super().__init__(name, level, fn, lno, msg, *args, **kwargs)
-
 
 class MultilineFormatter(logging.Formatter):
 
@@ -44,10 +43,18 @@ class MultilineFormatter(logging.Formatter):
                 f"but received {type(record).__name__}"
             )
 
-        return "\n".join(
-            super(MultilineFormatter, self).format(line_record)
-            for line_record in record.constituents
-        )
+        for line_record in record.constituents:
+            super_instance = super(MultilineFormatter, self)
+
+            try:
+                return super_instance.format(line_record)
+            except TypeError:
+
+                # When breaking on newlines, message placeholders may not be present in
+                # the resulting constituent records, resulting in formatting failures.
+                # Fall back to formatting the entire record in such cases.
+
+                super_instance.format(record)
 
 class ContextfulLogger:
 
