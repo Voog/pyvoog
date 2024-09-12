@@ -318,8 +318,12 @@ class Model:
 
         session = object_session(self) or get_session()
 
-        session.add(self)
-        session.commit()
+        try:
+            session.add(self)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
 
     def as_dict(self):
         return {"id": self.id, **self._get_attr_dict()}
