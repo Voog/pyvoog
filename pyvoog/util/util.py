@@ -2,6 +2,9 @@ import importlib
 import inspect
 
 class AllowException:
+
+    """ Prefer `contextlib.suppress` as a builtin alternative. """
+
     def __init__(self, *excs):
         self.excs = excs
 
