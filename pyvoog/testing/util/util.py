@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from datetime import datetime
 
 from flask.ctx import AppContext
 
@@ -45,3 +46,17 @@ def app_context(app):
         yield app_ctx
     finally:
         teardown_app_ctx(app_ctx)
+
+@contextmanager
+def stopwatch():
+
+    """ A context manager for measuring elapsed time. Yields a function
+    returning a time delta since entering the context.
+    """
+
+    started_at = datetime.now()
+
+    def measure():
+        return datetime.now() - started_at
+
+    yield measure
