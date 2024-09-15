@@ -4,6 +4,14 @@ from flask.ctx import AppContext
 
 from pyvoog.testing.signals import app_ctx_pushed
 
+class TestBreakpoint(Exception):
+
+    """ A utility class useful for early exit from a complex system under
+    test. Can be used with an `assertRaises` assertion to verify that a
+    point in code was reached or for other purposes where it is not
+    desireable to execute an entire code path.
+    """
+
 def setup_app_ctx(app):
 
     """ Manually set up and push an application context. The caller is
