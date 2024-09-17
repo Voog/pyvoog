@@ -14,7 +14,7 @@ class ValidationError(marshmallow.ValidationError):
     def errors(self):
         return self.messages
 
-@define
+@define(str=True)
 class ExternalError(Exception):
 
     """ An error raised due to an external system returning an error
