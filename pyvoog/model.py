@@ -163,18 +163,27 @@ class UTCTimeStamp(sa_types.TypeDecorator):
     """ An SQLAlchemy type decorator for converting and storing all incoming
     timestamps as UTC and returning these as such. Note that SQLite drops
     all time zone information, hence always storing timestamps as UTC is a
-    workaround to that issue. If an incoming datetime is naive (i.e.
-    contains no time zone information), it is considered to represent time
-    in the system timezone. See:
+    workaround to that issue. Incoming values are required to be aware, i.e.
+    to contain time zone information. Pass `UTCTimeStamp.NOW` to set the
+    timestamp to the current date and time.
+
+    See:
 
     https://docs.python.org/3/library/datetime.html#datetime.datetime.astimezone
     https://mike.depalatis.net/blog/sqlalchemy-timestamps.html
     """
 
+    NOW = "now"
+
     impl = sa_types.DateTime
     cache_ok = True
 
     def process_bind_param(self, value: datetime, dialect):
+        if value == self.NOW:
+            value = datetime.now(tz=timezone.utc).replace(microsecond=0)
+        elif not isinstance(value, datetime) or not value.tzinfo:
+            raise TypeError("UTCTimeStamp values must be aware `datetime` objects")
+
         return value.astimezone(timezone.utc)
 
     def process_result_value(self, value, dialect):
@@ -208,8 +217,8 @@ class ModelMetaclass(DeclarativeMeta):
         if not getattr(cls, "include_timestamps", False):
             return
 
-        cls.created_at = Column(UTCTimeStamp(), default=func.now())
-        cls.updated_at = Column(UTCTimeStamp(), default=func.now(), onupdate=func.now())
+        cls.created_at = Column(UTCTimeStamp(), default=UTCTimeStamp.NOW)
+        cls.updated_at = Column(UTCTimeStamp(), default=UTCTimeStamp.NOW, onupdate=UTCTimeStamp.NOW)
 
     def _attach_init_listener(cls):
 
