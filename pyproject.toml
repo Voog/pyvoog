@@ -1,7 +1,7 @@
 
 [tool.poetry]
 name = "pyvoog"
-version = "0.5.5"
+version = "0.5.6"
 description = "A Model-Controller web framework"
 authors = ["Tambet Arak <tambet@voog.com>"]
 license = "BSD-3-Clause"
